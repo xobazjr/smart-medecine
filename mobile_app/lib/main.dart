@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'user/settings_page.dart';
 import 'user/drugs_page.dart';
-import 'user/stats_page.dart';
+import 'user/history_page.dart';
 import 'user/home_page.dart';
 
 void main() => runApp(const MyApp());
@@ -39,7 +39,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // Text('Index 1: Drugs', style: optionStyle),
     DrugsPage(),
     // Text('Index 2: Stats', style: optionStyle),
-    StatsPage(),
+    HistoryPage(),
     // Text('Index 3: Settings', style: optionStyle),
     SettingsPage(),
   ];

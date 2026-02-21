@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class StatsPage extends StatelessWidget {
-  const StatsPage({super.key});
+class HistoryPage extends StatelessWidget {
+  const HistoryPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -9,7 +9,7 @@ class StatsPage extends StatelessWidget {
       appBar: AppBar(title: const Text('สถิติ')),
       body: Center(
         child: Text(
-          'Stats Page',
+          'History Page',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ),
