@@ -69,8 +69,8 @@ class _MyHomePageState extends State<MyHomePage> {
             backgroundColor: Color(0xFF095086),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.query_stats_sharp),
-            label: 'สถิติ',
+            icon: Icon(Icons.history),
+            label: 'ประวัติ',
             backgroundColor: Color(0xFF095086),
           ),
           BottomNavigationBarItem(
