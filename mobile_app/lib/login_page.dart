@@ -40,6 +40,7 @@ class _LoginPageState extends State<LoginPage> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('userData', jsonEncode(data['user']));
+        await prefs.setString('roleData', jsonEncode(data['role']));
 
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
