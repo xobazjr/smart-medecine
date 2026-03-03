@@ -1,0 +1,79 @@
+cmake_minimum_required(VERSION 4.0)
+project(smart_medicine)
+
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(backend/node_modules/sharp/src)
+include_directories(iot_firmware)
+include_directories(iot_firmware/hardware_controller_firmware)
+include_directories(iot_firmware/network_controller_firmware)
+include_directories(mobile_app/ios/Runner)
+include_directories(mobile_app/linux/flutter)
+include_directories(mobile_app/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/example/linux)
+include_directories(mobile_app/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/linux)
+include_directories(mobile_app/linux/runner)
+include_directories(mobile_app/windows/flutter)
+include_directories(mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner)
+include_directories(mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner)
+include_directories(mobile_app/windows/runner)
+
+add_executable(smart_medicine
+        backend/node_modules/sharp/src/common.cc
+        backend/node_modules/sharp/src/common.h
+        backend/node_modules/sharp/src/metadata.cc
+        backend/node_modules/sharp/src/metadata.h
+        backend/node_modules/sharp/src/operations.cc
+        backend/node_modules/sharp/src/operations.h
+        backend/node_modules/sharp/src/pipeline.cc
+        backend/node_modules/sharp/src/pipeline.h
+        backend/node_modules/sharp/src/sharp.cc
+        backend/node_modules/sharp/src/stats.cc
+        backend/node_modules/sharp/src/stats.h
+        backend/node_modules/sharp/src/utilities.cc
+        backend/node_modules/sharp/src/utilities.h
+        iot_firmware/hardware_controller_firmware/hardware_controller_firmware.ino
+        iot_firmware/network_controller_firmware/network_controller_firmware.ino
+        mobile_app/ios/Runner/GeneratedPluginRegistrant.h
+        mobile_app/ios/Runner/GeneratedPluginRegistrant.m
+        mobile_app/ios/Runner/Runner-Bridging-Header.h
+        mobile_app/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/example/linux/main.cc
+        mobile_app/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/example/linux/my_application.cc
+        mobile_app/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux/example/linux/my_application.h
+        mobile_app/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/linux/main.cc
+        mobile_app/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/linux/my_application.cc
+        mobile_app/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/linux/my_application.h
+        mobile_app/linux/flutter/generated_plugin_registrant.cc
+        mobile_app/linux/flutter/generated_plugin_registrant.h
+        mobile_app/linux/runner/main.cc
+        mobile_app/linux/runner/my_application.cc
+        mobile_app/linux/runner/my_application.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/flutter_window.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/flutter_window.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/main.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/resource.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/run_loop.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/run_loop.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/utils.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/utils.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/win32_window.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows/example/windows/runner/win32_window.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/flutter_window.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/flutter_window.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/main.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/resource.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/run_loop.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/run_loop.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/utils.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/utils.h
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/win32_window.cpp
+        mobile_app/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/windows/runner/win32_window.h
+        mobile_app/windows/flutter/generated_plugin_registrant.cc
+        mobile_app/windows/flutter/generated_plugin_registrant.h
+        mobile_app/windows/runner/flutter_window.cpp
+        mobile_app/windows/runner/flutter_window.h
+        mobile_app/windows/runner/main.cpp
+        mobile_app/windows/runner/resource.h
+        mobile_app/windows/runner/utils.cpp
+        mobile_app/windows/runner/utils.h
+        mobile_app/windows/runner/win32_window.cpp
+        mobile_app/windows/runner/win32_window.h)
