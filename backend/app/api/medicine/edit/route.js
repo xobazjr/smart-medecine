@@ -13,6 +13,13 @@ export async function POST(req) {
   SELECT * FROM drugs WHERE drug_id = ${id}
 `;
 
+        if (!id || id === "") {
+            return NextResponse.json(
+                {error: "Drug id is invalid or empty", status: 204},
+                {status: 204}
+            )
+        }
+
         if (oldDrug.length === 0) {
             return NextResponse.json({ error: "Drug not found" }, { status: 404 });
         }

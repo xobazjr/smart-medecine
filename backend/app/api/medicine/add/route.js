@@ -13,7 +13,14 @@ export async function POST(req) {
 
         const user_id = await sql`select user_id from users where username = ${username}`;
 
-        const newMedicine = await sql`
+        if (!drug_name || !user_id[0].user_id || drug_name === "" || user_id[0].user_id === "") {
+            return NextResponse.json(
+                {error: "Either drug name or user id is invalid", status: 204},
+                {status: 204}
+            )
+        }
+
+            const newMedicine = await sql`
             INSERT INTO drugs (
                 drug_name, start_date, start_time, total_drugs,
                 each_taken, description, warning, image_url,
