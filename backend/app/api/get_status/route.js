@@ -9,43 +9,44 @@ export async function GET(req) {
             return NextResponse.json({ error: "Device not found" }, { status: 404 });
         }
 
-        // 1. Ensure we treat the DB timestamp as a proper Date object
         const ts = new Date(query_status[0].timestamp);
         const now = new Date();
-        const diffInSeconds = Math.floor((now - ts) / 1000);
 
-        // 2. Use 'toLocaleString' to force Bangkok (UTC+7) formatting
-        // This prevents the 'negative' offset issue
-        const options = { timeZone: 'Asia/Bangkok', hour12: false };
+        // --- 1. Fix the "Negative" Math ---
+        // We get the difference in seconds.
+        // If it's negative, it's usually because of server clock drift or TZ mismatch.
+        let diffInSeconds = Math.floor((now - ts) / 1000);
 
-        const dateStr = ts.toLocaleDateString('en-CA', options); // YYYY-MM-DD
-        const timeStr = ts.toLocaleTimeString('en-GB', options); // HH:MM:SS
-        const datetimeStr = `${dateStr} ${timeStr}`;
+        // --- 2. Force Bangkok Formatting (UTC+7) ---
+        // This ensures the strings for Date and Time match Thailand, not the Vercel Server location.
+        const tz = 'Asia/Bangkok';
+        const dateStr = ts.toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
+        const timeStr = ts.toLocaleTimeString('en-GB', { timeZone: tz, hour12: false }); // HH:MM:SS
 
-        // 3. Human-readable Logic (remains the same)
+        // --- 3. Robust Last Seen Logic ---
         let lastSeen = "";
-        const absDiff = Math.abs(diffInSeconds); // Use Absolute value as a safety net
 
-        if (diffInSeconds < 0 && absDiff < 30) {
-            lastSeen = "just now"; // Handles tiny clock drifts
+        // If diff is negative but small (under 1 min), the clock is just slightly out of sync
+        if (diffInSeconds < 0 && Math.abs(diffInSeconds) < 60) {
+            lastSeen = "just now";
         } else if (diffInSeconds < 60) {
-            lastSeen = `${diffInSeconds} seconds ago`;
+            lastSeen = `${Math.max(0, diffInSeconds)} seconds ago`;
         } else if (diffInSeconds < 3600) {
-            const minutes = Math.floor(diffInSeconds / 60);
-            lastSeen = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            const mins = Math.floor(diffInSeconds / 60);
+            lastSeen = `${mins} minute${mins > 1 ? 's' : ''} ago`;
         } else if (diffInSeconds < 86400) {
-            const hours = Math.floor(diffInSeconds / 3600);
-            lastSeen = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            const hrs = Math.floor(diffInSeconds / 3600);
+            lastSeen = `${hrs} hour${hrs > 1 ? 's' : ''} ago`;
         } else {
             const days = Math.floor(diffInSeconds / 86400);
             lastSeen = `${days} day${days > 1 ? 's' : ''} ago`;
         }
 
         return NextResponse.json({
-            timestamp: ts,
+            timestamp: ts, // Raw ISO
             date: dateStr,
             time: timeStr,
-            datetime: datetimeStr,
+            datetime: `${dateStr} ${timeStr}`,
             last_seen: lastSeen
         });
 
