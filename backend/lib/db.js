@@ -1,11 +1,6 @@
-import postgres from 'postgres';
+import postgres from 'postgres'
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL
+const sql = postgres(connectionString)
 
-if (!connectionString) {
-  throw new Error('DATABASE_URL is not defined in your .env.local file');
-}
-
-const sql = postgres(connectionString);
-
-export default sql;
+export default sql

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'landing_page.dart';
+import 'landing_page_patient.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -35,17 +36,32 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
+        // Extract the role from the nested user object
+        final String role = data['user']['role'] ?? '';
+
         // Save login state and user data
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('userData', jsonEncode(data['user']));
-        await prefs.setString('roleData', jsonEncode(data['role']));
+        await prefs.setString('roleData', role);
 
         if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LandingPage()),
-        );
+
+        // Route the user based on their role
+        if (role == 'admin') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const LandingPage()),
+          );
+        } else if (role == 'elderly') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const LandingPagePatient()),
+          );
+        } else {
+          // Fallback if the role is missing or unknown
+          _showErrorDialog('Unauthorized role: $role');
+        }
+
       } else {
         final errorData = jsonDecode(response.body);
         _showErrorDialog(errorData['error'] ?? 'Failed to login');

@@ -1,53 +1,77 @@
+// /app/api/auth/signup/route.js
+
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import sql from '../../../lib/db';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 
 export async function POST(request) {
-  try {
-    const { username, password, tel, role } = await request.json();
+    try {
+        const body = await request.json();
+        const {
+            username,
+            password,
+            tel,
+            role,
+            caretaker_id,
+            webhook_url_discord,
+            webhook_url_line
+        } = body;
 
-    if (!username || !password) {
-      return NextResponse.json({ error: "Username and password are required" }, { status: 400 });
-    }
-
-    // 1. Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
-
-    // 2. Generate a unique user_id
-    // Since your database column 'user_id' is NOT NULL and not auto-generating, 
-    // we generate a UUID here in the code.
-    const user_id = crypto.randomUUID();
-
-    // 3. Insert into Supabase matching your schema
-    const { data, error } = await supabase
-      .from('users')
-      .insert([
-        { 
-          user_id,
-          username, 
-          password_hash, 
-          tel: tel || null, 
-          role: role || 'patient'
+        if (!username || !password) {
+            return NextResponse.json(
+                { error: "Username and password are required" },
+                { status: 400 }
+            );
         }
-      ])
-      .select();
 
-    if (error) {
-      throw error;
+        const existingUser = await sql`
+            SELECT username FROM users
+            WHERE username = ${username}
+                LIMIT 1
+        `;
+
+        if (existingUser.length > 0) {
+            return NextResponse.json(
+                { error: "Username is already taken" },
+                { status: 409 }
+            );
+        }
+
+        const saltRounds = 10;
+        const password_hash = await bcrypt.hash(password, saltRounds);
+
+        const newUser = await sql`
+            INSERT INTO users (
+                username,
+                password_hash,
+                tel,
+                role,
+                caretaker_id,
+                webhook_url_discord,
+                webhook_url_line
+            ) VALUES (
+                         ${username},
+                         ${password_hash},
+                         ${tel || null},
+                         ${role || 'user'},
+                         ${caretaker_id || null},
+                         ${webhook_url_discord || null},
+                         ${webhook_url_line || null}
+                     )
+                RETURNING user_id, username, role, tel;
+        `;
+
+        return NextResponse.json({
+            message: "User created successfully!",
+            user: newUser[0]
+        }, { status: 201 });
+
+    } catch (error) {
+
+        console.error("Signup Error:", error);
+        return NextResponse.json(
+            { error: "Internal server error", details: error.message },
+            { status: 500 }
+        );
     }
-
-    return NextResponse.json({ 
-      message: "User created successfully!", 
-      user: {
-        user_id: data[0].user_id,
-        username: data[0].username,
-        role: data[0].role
-      }
-    });
-  } catch (error) {
-    console.error("Signup Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
 }

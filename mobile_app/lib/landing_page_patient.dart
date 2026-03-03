@@ -4,14 +4,14 @@ import 'admin/drugs_page.dart';
 import 'admin/history_page.dart';
 import 'admin/home_page.dart';
 
-class LandingPage extends StatefulWidget {
-  const LandingPage({super.key});
+class LandingPagePatient extends StatefulWidget {
+  const LandingPagePatient({super.key});
 
   @override
-  State<LandingPage> createState() => _LandingPageState();
+  State<LandingPagePatient> createState() => _LandingPagePatientState();
 }
 
-class _LandingPageState extends State<LandingPage> {
+class _LandingPagePatientState extends State<LandingPagePatient> {
   int _selectedIndex = 0;
 
   static const List<Widget> _widgetOptions = <Widget>[
