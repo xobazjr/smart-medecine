@@ -27,7 +27,9 @@ export async function POST(req) {
                 username,
                 password_hash,
                 tel,
-                               role,
+                               webhook_url_discord,
+                               webhook_url_line,
+                role,
                 caretaker_id,
                 morning_time,
                 noon_time,
@@ -37,13 +39,15 @@ export async function POST(req) {
                  ${username},
                  ${password_hash},
                  ${tel || null},
-                      "elderly",
-                 ${caretaker_id},
+                      null,
+                      null,
+                 'elderly',
+                 ${caretaker_id[0].user_id},
                  ${morning_time ?? "8:00:00"},
                  ${noon_time ?? "12:00:00"},
                  ${evening_time ?? "18:00:00"},
                  ${bedtime_time ?? "22:00:00"}     
-            ) RETURNING user_id, username, role, tel;
+            ) RETURNING user_id, username, tel;
         `;
 
         return NextResponse.json(status);
