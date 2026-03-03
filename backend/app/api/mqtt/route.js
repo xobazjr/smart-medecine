@@ -17,8 +17,8 @@ export async function GET(request) {
             clientId: 'nextjs_api_get_' + Math.random().toString(16).substring(2, 8)
         };
 
-        const topicPublish = 'medicine/set/time';
-        const topicSubscribe = 'medicine/set/time/response';
+        const topicPublish = 'medicine/time/send';
+        const topicSubscribe = 'medicine/time/receive';
 
         // Wrap the whole MQTT process in a Promise
         const boardResponse = await new Promise((resolve, reject) => {
