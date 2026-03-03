@@ -92,6 +92,7 @@ void reconnect() {
 }
 
 // function to send something to arduino board via serial
+// must send as CMD:
 void sendToArduino(String cmd, String action, String value) {
   Serial.println(cmd + ":" + action + ":" + value);
 }
