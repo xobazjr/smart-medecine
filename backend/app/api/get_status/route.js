@@ -9,48 +9,49 @@ export async function GET(req) {
             return NextResponse.json({ error: "Device not found" }, { status: 404 });
         }
 
+        // 1. Get the raw timestamp from the DB
         const ts = new Date(query_status[0].timestamp);
         const now = new Date();
 
-        // --- 1. Fix the "Negative" Math ---
-        // We get the difference in seconds.
-        // If it's negative, it's usually because of server clock drift or TZ mismatch.
-        let diffInSeconds = Math.floor((now - ts) / 1000);
-
-        // --- 2. Force Bangkok Formatting (UTC+7) ---
-        // This ensures the strings for Date and Time match Thailand, not the Vercel Server location.
+        // 2. Force strings to Bangkok Time (UTC+7)
+        // This prevents the "3 AM" shift by ignoring the server's local clock.
         const tz = 'Asia/Bangkok';
         const dateStr = ts.toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
         const timeStr = ts.toLocaleTimeString('en-GB', { timeZone: tz, hour12: false }); // HH:MM:SS
+        const datetimeStr = `${dateStr} ${timeStr}`;
 
-        // --- 3. Robust Last Seen Logic ---
+        // 3. Calculate "Time Ago"
+        // We use Math.floor to get the total seconds difference
+        const diffInSeconds = Math.floor((now - ts) / 1000);
+
         let lastSeen = "";
 
-        // If diff is negative but small (under 1 min), the clock is just slightly out of sync
-        if (diffInSeconds < 0 && Math.abs(diffInSeconds) < 60) {
+        // Handle small clock drifts (if diff is slightly negative, it's "just now")
+        if (diffInSeconds < 5) {
             lastSeen = "just now";
         } else if (diffInSeconds < 60) {
-            lastSeen = `${Math.max(0, diffInSeconds)} seconds ago`;
+            lastSeen = `${diffInSeconds} seconds ago`;
         } else if (diffInSeconds < 3600) {
-            const mins = Math.floor(diffInSeconds / 60);
-            lastSeen = `${mins} minute${mins > 1 ? 's' : ''} ago`;
+            const minutes = Math.floor(diffInSeconds / 60);
+            lastSeen = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
         } else if (diffInSeconds < 86400) {
-            const hrs = Math.floor(diffInSeconds / 3600);
-            lastSeen = `${hrs} hour${hrs > 1 ? 's' : ''} ago`;
+            const hours = Math.floor(diffInSeconds / 3600);
+            lastSeen = `${hours} hour${hours > 1 ? 's' : ''} ago`;
         } else {
             const days = Math.floor(diffInSeconds / 86400);
             lastSeen = `${days} day${days > 1 ? 's' : ''} ago`;
         }
 
         return NextResponse.json({
-            timestamp: ts, // Raw ISO
+            timestamp: ts.toISOString(),
             date: dateStr,
             time: timeStr,
-            datetime: `${dateStr} ${timeStr}`,
+            datetime: datetimeStr,
             last_seen: lastSeen
         });
 
     } catch (e) {
+        console.error("GET Status Error:", e);
         return NextResponse.json({ status: 500, error: e.message }, { status: 500 });
     }
 }
