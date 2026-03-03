@@ -11,7 +11,8 @@ class DeleteUserPage extends StatefulWidget {
 
 class _DeleteUserPageState extends State<DeleteUserPage> {
   late Future<List<dynamic>> futureUsers;
-  int? deletingUserId;
+
+  String? deletingUserId;
 
   @override
   void initState() {
@@ -33,39 +34,54 @@ class _DeleteUserPageState extends State<DeleteUserPage> {
     }
   }
 
-  Future<void> deleteUser(int userId) async {
+  Future<void> deleteUser(String userId) async {
     setState(() {
       deletingUserId = userId;
     });
 
-    final response = await http.post(
-      Uri.parse('https://smart-medicine-topaz.vercel.app/api/patients/delete'),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"id": userId}),
-    );
-
-    if (!mounted) return;
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ลบผู้ใช้สำเร็จ'),
-          backgroundColor: Colors.green,
+    try {
+      final response = await http.post(
+        Uri.parse(
+          'https://smart-medicine-topaz.vercel.app/api/patients/delete',
         ),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"id": userId}),
       );
 
-      setState(() {
-        deletingUserId = null;
-        futureUsers = fetchUsers();
-      });
-    } else {
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ลบผู้ใช้สำเร็จ'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        setState(() {
+          deletingUserId = null;
+          futureUsers = fetchUsers();
+        });
+      } else {
+        setState(() {
+          deletingUserId = null;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${response.body}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
       setState(() {
         deletingUserId = null;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('ลบผู้ใช้ไม่สำเร็จ'),
+          content: Text('Network Error'),
           backgroundColor: Colors.red,
         ),
       );
@@ -91,6 +107,7 @@ class _DeleteUserPageState extends State<DeleteUserPage> {
               itemCount: users.length,
               itemBuilder: (context, index) {
                 final user = users[index];
+                final userId = user["user_id"].toString();
 
                 return Card(
                   color: Colors.white,
@@ -103,8 +120,8 @@ class _DeleteUserPageState extends State<DeleteUserPage> {
                       user["username"],
                       style: const TextStyle(fontWeight: FontWeight.normal),
                     ),
-                    subtitle: Text("ลบบัญชีนี้ออกจากระบบ"),
-                    trailing: deletingUserId == user["user_id"]
+                    subtitle: const Text("ลบบัญชีนี้ออกจากระบบ"),
+                    trailing: deletingUserId == userId
                         ? const SizedBox(
                             width: 24,
                             height: 24,
@@ -112,23 +129,28 @@ class _DeleteUserPageState extends State<DeleteUserPage> {
                           )
                         : IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              showDialog(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
                                 context: context,
-                                builder: (_) => AlertDialog(
+                                builder: (dialogContext) => AlertDialog(
                                   title: const Text('ยืนยันการลบ'),
                                   content: Text(
                                     'คุณต้องการลบ ${user["username"]} ใช่หรือไม่?',
                                   ),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.pop(context),
+                                      onPressed: () {
+                                        Navigator.of(
+                                          dialogContext,
+                                        ).pop(false); // ❌ ยกเลิก
+                                      },
                                       child: const Text('ยกเลิก'),
                                     ),
                                     TextButton(
                                       onPressed: () {
-                                        Navigator.pop(context);
-                                        deleteUser(user["user_id"]);
+                                        Navigator.of(
+                                          dialogContext,
+                                        ).pop(true); // ✅ ยืนยัน
                                       },
                                       child: const Text(
                                         'ลบ',
@@ -138,6 +160,11 @@ class _DeleteUserPageState extends State<DeleteUserPage> {
                                   ],
                                 ),
                               );
+
+                              // ถ้ากดยืนยัน
+                              if (confirm == true) {
+                                deleteUser(userId);
+                              }
                             },
                           ),
                   ),
