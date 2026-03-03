@@ -62,73 +62,101 @@ class _DeleteDrugPageState extends State<DeleteDrugPage> {
                       ...user["drugs"].map<Widget>((drug) {
                         return Column(
                           children: [
-                            ListTile(
-                              title: Text(drug["drug_name"]),
-                              subtitle: Text(drug["warning"]),
-                              shape: RoundedRectangleBorder(
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.5),
+                                    spreadRadius: 2,
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                              tileColor: Colors.white,
-                              trailing: deletingDrugId == drug["drug_id"]
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : IconButton(
-                                      icon: const Icon(
-                                        Icons.delete,
-                                        color: Colors.red,
-                                      ),
-                                      onPressed: () async {
-                                        setState(() {
-                                          deletingDrugId = drug["drug_id"];
-                                        });
 
-                                        final response = await http.post(
-                                          Uri.parse(
-                                            'https://smart-medicine-topaz.vercel.app/api/medicine/delete',
-                                          ),
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                          },
-                                          body: jsonEncode({
-                                            "id": drug["drug_id"],
-                                          }),
-                                        );
-
-                                        if (!mounted) return;
-
-                                        if (response.statusCode == 200) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('ลบยาสำเร็จ'),
-                                            ),
-                                          );
-
+                              child: ListTile(
+                                title: Text(
+                                  drug["drug_name"],
+                                  style: const TextStyle(
+                                    color: Color(0xFF5F5F5F),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  drug["warning"],
+                                  style: const TextStyle(
+                                    color: Color(0xFF5F5F5F),
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                tileColor: Colors.white,
+                                trailing: deletingDrugId == drug["drug_id"]
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () async {
                                           setState(() {
-                                            deletingDrugId = null;
-                                            futureUsers = fetchDrugs();
-                                          });
-                                        } else {
-                                          setState(() {
-                                            deletingDrugId = null;
+                                            deletingDrugId = drug["drug_id"];
                                           });
 
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('ลบยาไม่สำเร็จ'),
+                                          final response = await http.post(
+                                            Uri.parse(
+                                              'https://smart-medicine-topaz.vercel.app/api/medicine/delete',
                                             ),
+                                            headers: {
+                                              "Content-Type":
+                                                  "application/json",
+                                            },
+                                            body: jsonEncode({
+                                              "id": drug["drug_id"],
+                                            }),
                                           );
-                                        }
-                                      },
-                                    ),
+
+                                          if (!mounted) return;
+
+                                          if (response.statusCode == 200) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('ลบยาสำเร็จ'),
+                                              ),
+                                            );
+
+                                            setState(() {
+                                              deletingDrugId = null;
+                                              futureUsers = fetchDrugs();
+                                            });
+                                          } else {
+                                            setState(() {
+                                              deletingDrugId = null;
+                                            });
+
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('ลบยาไม่สำเร็จ'),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                              ),
                             ),
                             const SizedBox(height: 10),
                           ],
