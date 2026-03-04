@@ -13,22 +13,6 @@ export async function GET(req) {
         const ts = new Date(dbTimestamp);
         const now = new Date();
         const bkkNow = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const bkkTimeFormatter = new Intl.DateTimeFormat(
-            'en-US',
-            {
-                timeZone: 'Asia/Bangkok',
-                year: 'numeric',
-                month: 'numeric',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            }
-        );
-
-        bkkTimeFormatter.format(bkkTime);
-        console.log(bkkTime);
 
         // --- 1. Force formatting to match the DB string exactly (No 7-hour shift) ---
         // We use UTC methods to stop the server from "correcting" the timezone
