@@ -12,6 +12,23 @@ export async function GET(req) {
         const dbTimestamp = query_status[0].timestamp; // Raw timestamp from DB
         const ts = new Date(dbTimestamp);
         const now = new Date();
+        const bkkTime = new Date();
+        const bkkTimeFormatter = new Intl.DateTimeFormat(
+            'en-US',
+            {
+                timeZone: 'Asia/Bangkok',
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }
+        );
+
+        bkkTimeFormatter.format(bkkTime);
+        console.log(bkkTime);
 
         // --- 1. Force formatting to match the DB string exactly (No 7-hour shift) ---
         // We use UTC methods to stop the server from "correcting" the timezone
@@ -23,8 +40,10 @@ export async function GET(req) {
             String(ts.getUTCMinutes()).padStart(2, '0') + ':' +
             String(ts.getUTCSeconds()).padStart(2, '0');
 
+        console.log(now);
+
         // --- 2. Raw Time Calculation ---
-        const diffInSeconds = Math.floor((now - ts) / 1000);
+        const diffInSeconds = Math.floor((bkkTime - ts) / 1000);
 
         let lastSeen = "";
 
