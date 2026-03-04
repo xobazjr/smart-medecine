@@ -281,21 +281,21 @@ class _AddDrugPageState extends State<AddDrugPage> {
                     prefixIcon: Icon(Icons.image),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'กรุณากรอกลิงก์รูปภาพ';
-                    }
+                  // validator: (value) {
+                  //   if (value == null || value.trim().isEmpty) {
+                  //     return 'กรุณากรอกลิงก์รูปภาพ';
+                  //   }
 
-                    final uri = Uri.tryParse(value.trim());
+                  //   final uri = Uri.tryParse(value.trim());
 
-                    if (uri == null ||
-                        !uri.hasAbsolutePath ||
-                        !(uri.scheme == 'http' || uri.scheme == 'https')) {
-                      return 'กรุณากรอก URL ให้ถูกต้อง (ต้องขึ้นต้นด้วย http หรือ https)';
-                    }
+                  //   if (uri == null ||
+                  //       !uri.hasAbsolutePath ||
+                  //       !(uri.scheme == 'http' || uri.scheme == 'https')) {
+                  //     return 'กรุณากรอก URL ให้ถูกต้อง (ต้องขึ้นต้นด้วย http หรือ https)';
+                  //   }
 
-                    return null;
-                  },
+                  //   return null;
+                  // },
                 ),
                 const SizedBox(height: 20),
 
