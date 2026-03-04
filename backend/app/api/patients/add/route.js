@@ -38,7 +38,7 @@ export async function POST(req) {
             ) VALUES (
                  ${username},
                  ${password_hash},
-                 ${tel || 0},
+                 ${tel || ""},
                       "",
                       "",
                  'elderly',
