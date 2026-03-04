@@ -15,6 +15,8 @@ class _AddUserPageState extends State<AddUserPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _telController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   bool _isLoading = false;
 
@@ -112,6 +114,25 @@ class _AddUserPageState extends State<AddUserPage> {
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'กรุณากรอกรหัสผ่าน';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 15),
+
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'ยืนยันรหัสผ่าน',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'กรุณากรอกยืนยันรหัสผ่าน';
+                  }
+                  if (value != _passwordController.text) {
+                    return 'รหัสผ่านไม่ตรงกัน';
                   }
                   return null;
                 },
