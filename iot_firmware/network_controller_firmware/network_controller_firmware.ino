@@ -7,6 +7,10 @@
 #define pingInterval 5000 // (5 seconds)
 #define mqttConnectionInterval 5000
 
+// --- Wi-Fi Connection Credentials ---
+#define WIFI_SSID "Phongsiri's A16"
+#define WIFI_PASSWORD "ktbkonno485137@Hotspot"
+
 // --- EMQX Broker Credentials ---
 #define BROKER_DOMAIN "l2901b8a.ala.asia-southeast1.emqxsl.com"
 #define BROKER_PORT 8883
@@ -42,10 +46,11 @@ void setup_wifi() {
   WiFi.mode(WIFI_STA); 
   delay(100);
 
-  Serial.println("WIFI: connecting to Phongsiri's A16");
+  Serial.print("WIFI: connecting to ");
+  Serial.println(WIFI_SSID)
   
   // ลุย! สั่งเชื่อมต่ออีกครั้ง
-  WiFi.begin("Phongsiri's A16", "ktbkonno485137@Hotspot");
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 
 // function to reconnect to MQTT
@@ -128,15 +133,31 @@ void loop() {
   // 1. รับค่า Serial เสมอ ไม่ว่าจะมีเน็ตหรือไม่
   processIncomingSerial();
 
-  // Serial.println(WiFi.status());
-  // 2. เช็คสถานะ Wi-Fi
+  // 2. เช็คสถานะ Wi-Fi พร้อมระบบ Force Reconnect
   if (WiFi.status() != WL_CONNECTED) {
     unsigned long currentMillis = millis();
-    if (currentMillis - lastWifiBlink >= 500) { 
+    
+    // ไฟกระพริบและปริ้นท์สถานะทุกๆ 1 วินาที
+    if (currentMillis - lastWifiBlink >= 1000) { 
       lastWifiBlink = currentMillis;
       digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); 
-      Serial.println("WIFI: waiting for network...");
+      
+      Serial.print("WIFI: waiting... Error Code: ");
+      Serial.println(WiFi.status()); 
     }
+
+    // *** ลอจิกบังคับเชื่อมต่อใหม่ ***
+    static unsigned long lastForceWifi = 0; 
+    
+    // ถ้าเน็ตหลุดเกิน 10 วินาที สั่งตัดและเริ่มต่อใหม่ทันที!
+    if (currentMillis - lastForceWifi >= 10000) {
+      lastForceWifi = currentMillis;
+      Serial.println("WIFI: Timeout! Forcing reconnect...");
+      
+      WiFi.disconnect();
+      WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    }
+
     return; // ออกจาก loop ไปรอรอบหน้า
   }
 
