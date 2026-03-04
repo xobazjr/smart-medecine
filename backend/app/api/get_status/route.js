@@ -50,7 +50,8 @@ export async function GET(req) {
             date: dateStr,
             time: timeStr,
             datetime: `${dateStr} ${timeStr}`,
-            last_seen: lastSeen
+            last_seen: lastSeen,
+            ms: ts
         });
 
     } catch (e) {
