@@ -32,7 +32,7 @@ export async function POST(req) {
                              username = ${username ?? oldPatient[0].username},
                              password_hash = ${password_hash ?? oldPatient[0].password_hash},
                              tel = ${tel ?? oldPatient[0].tel},
-                             caretaker_id = ${caretaker_id ?? oldPatient[0].caretaker_id},
+                             caretaker_id = ${caretaker_id[0].user_id ?? oldPatient[0].caretaker_id},
                              morning_time = ${morning_time ?? oldPatient[0].morning_time},
                              noon_time = ${noon_time ?? oldPatient[0].noon_time},
                              evening_time = ${evening_time ?? oldPatient[0].evening_time},
