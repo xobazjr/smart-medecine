@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import sql from '../../../lib/db';
 
-async function GET(req) {
+export async function GET(req) {
     try {
         const query_status = await sql`SELECT * FROM board_status WHERE name = 'esp8266_xbjr' LIMIT 1`;
 
@@ -35,7 +35,6 @@ async function GET(req) {
         // Using raw divisions as requested (no "just now")
         if (diffInSeconds < 60) {
             lastSeen = `${diffInSeconds} second${diffInSeconds !== 1 ? 's' : ''} ago`;
-
             isOnline = diffInSeconds <= 15;
         } else if (diffInSeconds < 3600) {
             const mins = Math.floor(diffInSeconds / 60);
@@ -64,5 +63,3 @@ async function GET(req) {
         return NextResponse.json({ status: 500, error: e.message }, { status: 500 });
     }
 }
-
-export default GET
