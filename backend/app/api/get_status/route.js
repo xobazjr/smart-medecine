@@ -30,19 +30,24 @@ export async function GET(req) {
         const diffInSeconds = Math.floor((bkkNow - ts) / 1000);
 
         let lastSeen = "";
+        let isOnline = false;
 
         // Using raw divisions as requested (no "just now")
         if (diffInSeconds < 60) {
             lastSeen = `${diffInSeconds} second${diffInSeconds !== 1 ? 's' : ''} ago`;
+            isOnline = true;
         } else if (diffInSeconds < 3600) {
             const mins = Math.floor(diffInSeconds / 60);
             lastSeen = `${mins} minute${mins > 1 ? 's' : ''} ago`;
+            isOnline = false;
         } else if (diffInSeconds < 86400) {
             const hrs = Math.floor(diffInSeconds / 3600);
             lastSeen = `${hrs} hour${hrs > 1 ? 's' : ''} ago`;
+            isOnline = false;
         } else {
             const days = Math.floor(diffInSeconds / 86400);
             lastSeen = `${days} day${days > 1 ? 's' : ''} ago`;
+            isOnline = false;
         }
 
         return NextResponse.json({
@@ -50,7 +55,8 @@ export async function GET(req) {
             date: dateStr,
             time: timeStr,
             datetime: `${dateStr} ${timeStr}`,
-            last_seen: lastSeen
+            last_seen: lastSeen,
+            is_online: isOnline
         });
 
     } catch (e) {
