@@ -16,6 +16,7 @@ class _EditUserPageState extends State<EditUserPage> {
   final TextEditingController _telController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
 
   bool _isLoading = false;
   bool _isLoadingPatients = true;
@@ -24,6 +25,8 @@ class _EditUserPageState extends State<EditUserPage> {
 
   List<Map<String, dynamic>> _patients = [];
   String? _selectedPatientId;
+
+  String? _oldUsername;
 
   @override
   void initState() {
@@ -68,6 +71,9 @@ class _EditUserPageState extends State<EditUserPage> {
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "id": _selectedPatientId,
+        "username": _usernameController.text.trim().isEmpty
+            ? _oldUsername
+            : _usernameController.text.trim(),
         "password": _passwordController.text.trim(),
         "tel": _telController.text.trim(),
         "caretaker_name": caretakerName,
@@ -108,6 +114,7 @@ class _EditUserPageState extends State<EditUserPage> {
     _passwordController.dispose();
     _telController.dispose();
     _confirmPasswordController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
@@ -137,6 +144,12 @@ class _EditUserPageState extends State<EditUserPage> {
                         onChanged: (value) {
                           setState(() {
                             _selectedPatientId = value;
+
+                            // ✅ เก็บชื่อเดิมตอนเลือก
+                            final selected = _patients.firstWhere(
+                              (p) => p["user_id"].toString() == value,
+                            );
+                            _oldUsername = selected["username"].toString();
                           });
                         },
                         decoration: const InputDecoration(
@@ -150,6 +163,16 @@ class _EditUserPageState extends State<EditUserPage> {
                           return null;
                         },
                       ),
+
+                const SizedBox(height: 20),
+
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'ชื่อบัญชีใหม่',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
 
                 const SizedBox(height: 20),
 

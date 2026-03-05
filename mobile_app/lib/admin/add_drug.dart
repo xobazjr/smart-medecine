@@ -109,8 +109,8 @@ class _AddDrugPageState extends State<AddDrugPage> {
         "drug_name": _nameController.text,
         "start_date": _dateController.text,
         "start_time": _timeController.text,
-        "total_drugs": int.parse(_totalController.text),
-        "each_taken": int.parse(_eachController.text),
+        "total_drugs": int.tryParse(_totalController.text) ?? 0,
+        "each_taken": int.tryParse(_eachController.text) ?? 0,
         "description": _descController.text,
         "warning": _descController.text,
         "image_url": _imageController.text,
@@ -234,7 +234,18 @@ class _AddDrugPageState extends State<AddDrugPage> {
                     labelText: 'จำนวนยาที่ต้องกิน',
                     border: OutlineInputBorder(),
                   ),
+                  validator: (value) {
+                    final total = int.tryParse(_totalController.text) ?? 0;
+                    final each = int.tryParse(value ?? '') ?? 0;
+
+                    if (each > total) {
+                      return 'จำนวนที่กินต้องไม่เกินจำนวนทั้งหมด';
+                    }
+
+                    return null;
+                  },
                 ),
+
                 const SizedBox(height: 15),
 
                 TextFormField(
@@ -246,6 +257,12 @@ class _AddDrugPageState extends State<AddDrugPage> {
                     prefixIcon: Icon(Icons.calendar_today),
                     border: OutlineInputBorder(),
                   ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'กรุณาเลือกวันที่';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 15),
 
@@ -258,6 +275,9 @@ class _AddDrugPageState extends State<AddDrugPage> {
                     prefixIcon: Icon(Icons.access_time),
                     border: OutlineInputBorder(),
                   ),
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'กรุณาเลือกเวลา'
+                      : null,
                 ),
                 const SizedBox(height: 15),
 
