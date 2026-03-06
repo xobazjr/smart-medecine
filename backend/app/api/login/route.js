@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import sql from '../../../lib/db'; // Adjust this path depending on where db.js is located
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 export async function POST(request) {
     try {
@@ -40,8 +41,21 @@ export async function POST(request) {
         }
 
         // 3. Success! Return user data (excluding the password hash)
+        
+        // Generate JWT token
+        const token = jwt.sign(
+            { 
+                userId: user.user_id, 
+                username: user.username, 
+                role: user.role 
+            },
+            process.env.JWT_SECRET || 'default_secret_key', // Replace with your actual secret key or env variable
+            { expiresIn: '30d' }
+        );
+
         return NextResponse.json({
             message: "Login successful",
+            token: token,
             user: {
                 user_id: user.user_id,
                 username: user.username,

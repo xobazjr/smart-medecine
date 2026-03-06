@@ -1,83 +1,79 @@
-// libraries declaration
+#include <Arduino.h>
 #include <Servo.h>
+#include <HX711.h>
+#include <U8g2lib.h>
+#include <Wire.h>
+#include <RTClib.h>
 
-/*
-  QUICK NOTE: serial.print/serial.println
-  please do so it use 4 char of smth
-  like "CHAR"
+#define PIN_SERVO 9
+#define PIN_BUZZER 4
+#define PIN_SCK 3
+#define PIN_DT 2
+#define LID_OPEN 120
+#define LID_CLOSE 0
 
-  follow by colon and whitespace
-  then anything you want to append into it
+Servo servo;
+HX711 scale;
+RTC_DS3231 rtc;
 
-  e.g. "CHAR: hello world"
+// เปลี่ยนเป็น _1_ เพื่อประหยัด RAM มหาศาล
+U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
-  UPLOAD THIS TO "Generic ESP8266 Module"
-*/
-
-// --- PIN definition ---
-#define SERVO_PIN 9
-#define BUZZER_PIN 3
-
-// variable pre-definition
-String serialBuffer = "";
-
-// function to communicate (send) to ESP
-// must send as RPLY:
-void sendToESP(String cmd, String action, String value) {
-  Serial.println(cmd+":"+action+":"+value);
+void printCenter(const char* text, int y) {
+  int textWidth = u8g2.getUTF8Width(text);
+  int x = (128 - textWidth) / 2;
+  u8g2.setCursor(x, y);
+  u8g2.print(text);
 }
 
-// example function: blink the built-in led
-void blinkLED(int times) {
-  for (int i = 0; i < times; i++) {
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(1000);
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(1000);
+void init_system() {
+  Serial.begin(115200);
+  u8g2.begin();
+  u8g2.enableUTF8Print();
+
+  Serial.println(F("Step 1: OLED OK"));
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_etl16thai_t);
+    printCenter("Booting...", 40);
+  } while (u8g2.nextPage());
+
+  if (!rtc.begin()) {
+    Serial.println(F("Step 2: RTC Fail!"));
+    while (1);
   }
-  sendToESP("RPLY", "LOG", "blink successful");
+
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  pinMode(PIN_BUZZER, OUTPUT);
+  tone(PIN_BUZZER, 400, 40);
+
+  scale.begin(PIN_DT, PIN_SCK);
+  // scale.set_scale(-7050); // ถ้าแรมยังไม่พอ ให้ลองเอาค่าใส่ตรงๆ
+  // scale.tare(); // ถ้าค้างที่ Booting ให้ลองปิดบรรทัดนี้
+
+  servo.attach(PIN_SERVO);
+  servo.write(LID_CLOSE);
 }
 
-// function to read stuff from ESP
-void processIncomingSerial() {
+void clock_display() {
+  DateTime now = rtc.now();
+  char time_str[10];
+  sprintf(time_str, "%02d:%02d:%02d", now.hour(), now.minute(), now.second());
 
-  while (Serial.available() > 0) {
-    char inChar = (char)Serial.read();
-
-    // check if end of text
-    if (inChar == '\n') {
-      serialBuffer.trim();
-
-      // if it's a command
-      if (serialBuffer.startsWith("CMD:")) {
-        int actionSplit = serialBuffer.indexOf(':', 4);
-
-        // if exist
-        if (actionSplit != -1) {
-          String action = serialBuffer.substring(4, actionSplit);
-          String value = serialBuffer.substring(actionSplit + 1);
-
-          // DECLARE YOUR ACTIONS HERE!!!
-          // action to test BUILTIN LED to blink interval time set
-          if (action == "TEST_BLINK") {
-            int times = value.toInt();
-            blinkLED(times);
-          }
-        }
-      }
-
-      // clean the buffer
-      serialBuffer = "";
-    } else {
-      serialBuffer += inChar;
-    }
-  }
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_logisoso20_tn);
+    printCenter(time_str, 42);
+    u8g2.setFont(u8g2_font_etl14thai_t);
+    printCenter("เวลาปัจจุบัน", 15);
+  } while (u8g2.nextPage());
 }
 
 void setup() {
-  Serial.begin(115200);
+  init_system();
 }
 
 void loop() {
-  processIncomingSerial();
+  clock_display();
+  delay(1000);
 }

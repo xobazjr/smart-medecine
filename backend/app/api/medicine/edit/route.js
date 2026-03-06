@@ -1,17 +1,35 @@
 import {NextResponse} from 'next/server';
 import sql from '../../../../lib/db';
+import jwt from 'jsonwebtoken';
 
 export async function POST(req) {
     try {
+        // 1. Extract the token from the Authorization header
+        const authHeader = req.headers.get('authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return NextResponse.json(
+                { error: 'Unauthorized: Missing or invalid token' },
+                { status: 401 }
+            );
+        }
+
+        const token = authHeader.split(' ')[1];
+
+        // 2. Verify the token
+        try {
+            jwt.verify(token, process.env.JWT_SECRET || 'default_secret_key');
+        } catch (err) {
+            return NextResponse.json(
+                { error: 'Unauthorized: Invalid token' },
+                { status: 401 }
+            );
+        }
+
         const body = await req.json();
         const { id, drug_name, start_date, start_time, total_drugs,
                 each_taken, description, warning, image_url,
                 take_morning, take_noon, take_evening, take_bedtime,
                 timing, frequency } = body;
-
-        const oldDrug = await sql`
-  SELECT * FROM drugs WHERE drug_id = ${id}
-`;
 
         if (!id || id === "") {
             return NextResponse.json(
@@ -19,6 +37,10 @@ export async function POST(req) {
                 {status: 204}
             )
         }
+
+        const oldDrug = await sql`
+  SELECT * FROM drugs WHERE drug_id = ${id}
+`;
 
         if (oldDrug.length === 0) {
             return NextResponse.json({ error: "Drug not found" }, { status: 404 });
@@ -47,7 +69,8 @@ export async function POST(req) {
     }
     catch (e) {
         return NextResponse.json(
-            {error: e, status: 500}
+            {error: e, status: 500},
+            {status:500}
         )
     }
 }
