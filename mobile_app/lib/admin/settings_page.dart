@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  final Map<String, dynamic> user;
+  const SettingsPage({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {

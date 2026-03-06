@@ -8,9 +8,11 @@ import 'delete_user.dart';
 import 'edit_user.dart';
 import 'edit_drug.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final Map<String, dynamic> user;
+  const HomePage({super.key, required this.user});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -116,7 +118,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const AddDrugPage(),
+                          builder: (context) => AddDrugPage(user: widget.user),
                         ),
                       );
                     },
@@ -163,7 +165,8 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DeleteDrugPage(),
+                          builder: (context) =>
+                              DeleteDrugPage(user: widget.user),
                         ),
                       );
                     },
@@ -210,7 +213,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const AddUserPage(),
+                          builder: (context) => AddUserPage(user: widget.user),
                         ),
                       );
                     },
@@ -257,7 +260,8 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DeleteUserPage(),
+                          builder: (context) =>
+                              DeleteUserPage(user: widget.user),
                         ),
                       );
                     },
@@ -303,7 +307,9 @@ class _HomePageState extends State<HomePage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => EditUserPage()),
+                        MaterialPageRoute(
+                          builder: (context) => EditUserPage(user: widget.user),
+                        ),
                       );
                     },
                     child: Container(
@@ -349,7 +355,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const EditDrugPage(),
+                          builder: (context) => EditDrugPage(user: widget.user),
                         ),
                       );
                     },

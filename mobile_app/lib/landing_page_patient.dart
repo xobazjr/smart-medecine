@@ -5,7 +5,8 @@ import 'patient/history_page.dart';
 import 'patient/home_page.dart';
 
 class LandingPagePatient extends StatefulWidget {
-  const LandingPagePatient({super.key});
+  final Map<String, dynamic> user;
+  const LandingPagePatient({super.key, required this.user});
 
   @override
   State<LandingPagePatient> createState() => _LandingPagePatientState();

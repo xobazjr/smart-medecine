@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class AddUserPage extends StatefulWidget {
-  const AddUserPage({super.key});
+  final Map<String, dynamic> user;
+  const AddUserPage({super.key, required this.user});
 
   @override
   State<AddUserPage> createState() => _AddUserPageState();

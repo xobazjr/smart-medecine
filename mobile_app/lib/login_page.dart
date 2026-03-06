@@ -15,6 +15,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
   bool _isLoading = false;
 
   Future<void> _login() async {
@@ -25,10 +26,8 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final response = await http.post(
         Uri.parse('https://smart-medicine-topaz.vercel.app/api/login'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({
           'username': _usernameController.text,
           'password': _passwordController.text,
         }),
@@ -37,37 +36,37 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Extract the role from the nested user object
-        final String role = data['user']['role'] ?? '';
+        final user = data['user'];
+        final String role = user['role'] ?? '';
 
-        // Save login state and user data
         final prefs = await SharedPreferences.getInstance();
+
         await prefs.setBool('isLoggedIn', true);
-        await prefs.setString('userData', jsonEncode(data['user']));
+        await prefs.setString('userData', jsonEncode(user));
         await prefs.setString('roleData', role);
+        await prefs.setString('token', data['token']);
 
         if (!mounted) return;
 
-        // Route the user based on their role
         if (role == 'admin') {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LandingPage()),
+            MaterialPageRoute(builder: (context) => LandingPage(user: user)),
           );
         } else if (role == 'elderly') {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LandingPagePatient()),
+            MaterialPageRoute(
+              builder: (context) => LandingPagePatient(user: user),
+            ),
           );
         } else {
-          // Fallback if the role is missing or unknown
           _showErrorDialog('Unauthorized role: $role');
         }
-
       } else {
         final errorData = jsonDecode(response.body);
         _showErrorDialog(errorData['error'] ?? 'Failed to login');
       }
     } catch (e) {
-      _showErrorDialog("An error occurred: ${e.toString()}");
+      _showErrorDialog("Connection error");
     }
 
     if (mounted) {
@@ -83,7 +82,7 @@ class _LoginPageState extends State<LoginPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Login Failed'),
         content: Text(message),
-        actions: <Widget>[
+        actions: [
           TextButton(
             child: const Text('Okay'),
             onPressed: () {
@@ -105,62 +104,75 @@ class _LoginPageState extends State<LoginPage> {
         ),
         centerTitle: true,
       ),
+
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
+
             children: [
               const Text(
                 'ลงชื่อเข้าใช้',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 8),
+
               const Text(
                 'ขอให้เป็นวันที่ดีนะ!',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
+
               const SizedBox(height: 48),
+
               const Text(
                 'ชื่อบัญชี',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 8),
+
               TextField(
                 controller: _usernameController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.grey),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
               ),
+
               const SizedBox(height: 24),
+
               const Text(
                 'รหัสผ่าน',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 8),
+
               TextField(
                 controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.grey),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
               ),
+
               const SizedBox(height: 48),
+
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(
                       onPressed: _login,
+
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0D47A1),
                         foregroundColor: Colors.white,
@@ -169,6 +181,7 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+
                       child: const Text(
                         'เข้าสู่ระบบ',
                         style: TextStyle(

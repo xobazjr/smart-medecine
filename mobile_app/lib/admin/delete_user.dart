@@ -1,15 +1,22 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DeleteUserPage extends StatefulWidget {
-  const DeleteUserPage({super.key});
+  final Map<String, dynamic> user;
+  const DeleteUserPage({super.key, required this.user});
 
   @override
   State<DeleteUserPage> createState() => _DeleteUserPageState();
 }
 
 class _DeleteUserPageState extends State<DeleteUserPage> {
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
+
   late Future<List<dynamic>> futureUsers;
 
   String? deletingUserId;
@@ -23,8 +30,10 @@ class _DeleteUserPageState extends State<DeleteUserPage> {
   Future<List<dynamic>> fetchUsers() async {
     final response = await http.get(
       Uri.parse(
-        'https://smart-medicine-topaz.vercel.app/api/patients/list?caretaker_name=xobazjr',
+        'https://smart-medicine-topaz.vercel.app/api/patients/list?caretaker_name=${widget.user["username"]}',
       ),
+
+      headers: {"Authorization": "Bearer ${await _getToken()}"},
     );
 
     if (response.statusCode == 200) {
@@ -140,17 +149,13 @@ class _DeleteUserPageState extends State<DeleteUserPage> {
                                   actions: [
                                     TextButton(
                                       onPressed: () {
-                                        Navigator.of(
-                                          dialogContext,
-                                        ).pop(false); // ❌ ยกเลิก
+                                        Navigator.of(dialogContext).pop(false);
                                       },
                                       child: const Text('ยกเลิก'),
                                     ),
                                     TextButton(
                                       onPressed: () {
-                                        Navigator.of(
-                                          dialogContext,
-                                        ).pop(true); // ✅ ยืนยัน
+                                        Navigator.of(dialogContext).pop(true);
                                       },
                                       child: const Text(
                                         'ลบ',

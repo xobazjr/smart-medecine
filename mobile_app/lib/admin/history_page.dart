@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HistoryPage extends StatelessWidget {
-  const HistoryPage({super.key});
+  final Map<String, dynamic> user;
+  const HistoryPage({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {

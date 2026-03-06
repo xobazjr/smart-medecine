@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditDrugPage extends StatefulWidget {
-  const EditDrugPage({super.key});
+  final Map<String, dynamic> user;
+  const EditDrugPage({super.key, required this.user});
 
   @override
   State<EditDrugPage> createState() => _EditDrugPageState();
@@ -21,7 +23,7 @@ class _EditDrugPageState extends State<EditDrugPage> {
   bool _isLoadingPatients = true;
   bool _isLoadingDrugs = false;
 
-  final String caretakerName = "xobazjr";
+  // final String caretakerName = "xobazjr";
 
   List<Map<String, dynamic>> _patients = [];
   List<Map<String, dynamic>> _drugs = [];
@@ -36,12 +38,20 @@ class _EditDrugPageState extends State<EditDrugPage> {
   }
 
   Future<void> fetchPatients() async {
+    Future<String?> _getToken() async {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('token');
+    }
+
     final url = Uri.parse(
-      'https://smart-medicine-topaz.vercel.app/api/patients/list?caretaker_name=$caretakerName',
+      'https://smart-medicine-topaz.vercel.app/api/patients/list?caretaker_name=${widget.user["username"]}',
     );
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(
+        url,
+        headers: {"Authorization": "Bearer ${await _getToken()}"},
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -62,7 +72,7 @@ class _EditDrugPageState extends State<EditDrugPage> {
     setState(() => _isLoadingDrugs = true);
 
     final url = Uri.parse(
-      'https://smart-medicine-topaz.vercel.app/api/medicine/list?caretaker_name=$caretakerName&piname=$username',
+      'https://smart-medicine-topaz.vercel.app/api/medicine/list?caretaker_name=${widget.user["username"]}&piname=$username',
     );
 
     try {

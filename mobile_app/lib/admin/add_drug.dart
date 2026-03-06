@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddDrugPage extends StatefulWidget {
-  const AddDrugPage({super.key});
+  final Map<String, dynamic> user;
+  const AddDrugPage({super.key, required this.user});
 
   @override
   State<AddDrugPage> createState() => _AddDrugPageState();
@@ -35,10 +37,14 @@ class _AddDrugPageState extends State<AddDrugPage> {
   }
 
   Future<void> fetchPatients() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
     final response = await http.get(
       Uri.parse(
-        'https://smart-medicine-topaz.vercel.app/api/patients/list?caretaker_name=xobazjr',
+        'https://smart-medicine-topaz.vercel.app/api/patients/list?caretaker_name=${widget.user["username"]}',
       ),
+      headers: {"Authorization": "Bearer $token"},
     );
 
     if (!mounted) return;
@@ -104,7 +110,10 @@ class _AddDrugPageState extends State<AddDrugPage> {
 
     final response = await http.post(
       url,
-      headers: {"Content-Type": "application/json"},
+      headers: {
+        "Authorization": "Bearer ${widget.user["token"]}",
+        "Content-Type": "application/json",
+      },
       body: jsonEncode({
         "drug_name": _nameController.text,
         "start_date": _dateController.text,

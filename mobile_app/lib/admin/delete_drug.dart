@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DeleteDrugPage extends StatefulWidget {
-  const DeleteDrugPage({super.key});
+  final Map<String, dynamic> user;
+  const DeleteDrugPage({super.key, required this.user});
 
   @override
   State<DeleteDrugPage> createState() => _DeleteDrugPageState();
@@ -21,10 +23,15 @@ class _DeleteDrugPageState extends State<DeleteDrugPage> {
   }
 
   Future<List<dynamic>> fetchDrugs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
     final response = await http.get(
       Uri.parse(
-        'https://smart-medicine-topaz.vercel.app/api/medicine/list?caretaker_name=xobazjr',
+        'https://smart-medicine-topaz.vercel.app/api/medicine/list?caretaker_name=${widget.user["username"]}',
       ),
+
+      headers: {"Authorization": "Bearer $token"},
     );
 
     if (response.statusCode == 200) {

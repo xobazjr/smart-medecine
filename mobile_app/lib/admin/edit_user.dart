@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditUserPage extends StatefulWidget {
-  const EditUserPage({super.key});
+  final Map<String, dynamic> user;
+  const EditUserPage({super.key, required this.user});
 
   @override
   State<EditUserPage> createState() => _EditUserPageState();
@@ -21,7 +23,7 @@ class _EditUserPageState extends State<EditUserPage> {
   bool _isLoading = false;
   bool _isLoadingPatients = true;
 
-  final String caretakerName = "xobazjr";
+  // final String caretakerName = "xobazjr";
 
   List<Map<String, dynamic>> _patients = [];
   String? _selectedPatientId;
@@ -35,11 +37,20 @@ class _EditUserPageState extends State<EditUserPage> {
   }
 
   Future<void> fetchPatients() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
     final url = Uri.parse(
-      'https://smart-medicine-topaz.vercel.app/api/patients/list?caretaker_name=$caretakerName',
+      'https://smart-medicine-topaz.vercel.app/api/patients/list?caretaker_name=${widget.user["username"]}',
     );
 
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -76,7 +87,7 @@ class _EditUserPageState extends State<EditUserPage> {
             : _usernameController.text.trim(),
         "password": _passwordController.text.trim(),
         "tel": _telController.text.trim(),
-        "caretaker_name": caretakerName,
+        "caretaker_name": widget.user["username"],
         "morning_time": "08:00:00",
         "noon_time": "12:00:00",
         "evening_time": "18:00:00",
