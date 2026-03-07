@@ -23,7 +23,42 @@ unsigned long takenTimer = 0;
 
 int alarmCount = 0;
 
+/* ---------- NEW: COMMAND QUEUE ---------- */
 
+#define CMD_QUEUE_SIZE 20
+
+String cmdQueue[CMD_QUEUE_SIZE];
+int cmdHead = 0;
+int cmdTail = 0;
+
+unsigned long lastSerialSend = 0;
+const int SERIAL_INTERVAL = 150; // ms between commands
+
+void enqueueCommand(String cmd) {
+
+  int next = (cmdTail + 1) % CMD_QUEUE_SIZE;
+
+  if (next != cmdHead) {
+    cmdQueue[cmdTail] = cmd;
+    cmdTail = next;
+  }
+}
+
+void processQueue() {
+
+  if (cmdHead == cmdTail) return;
+
+  if (millis() - lastSerialSend < SERIAL_INTERVAL)
+    return;
+
+  Serial.println(cmdQueue[cmdHead]);
+
+  cmdHead = (cmdHead + 1) % CMD_QUEUE_SIZE;
+
+  lastSerialSend = millis();
+}
+
+/* ---------------------------------------- */
 
 void callback(char* topic, byte* payload, unsigned int length) {
 
@@ -36,18 +71,23 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (t == "medicine/set_alarm") {
 
-    Serial.print("CMD:ADD_MED:");
-    Serial.println(msg);
+    enqueueCommand("CMD:ADD_MED:" + msg);
   }
 
-  else if (t == "medicine/clear_alarm")
-    Serial.println("CMD:CLEAR_MED");
+  else if (t == "medicine/clear_alarm") {
 
-  else if (t == "medicine/refill")
-    Serial.println("CMD:REFILL");
+    enqueueCommand("CMD:CLEAR_MED");
+  }
 
-  else if (t == "medicine/tare")
-    Serial.println("CMD:TARE");
+  else if (t == "medicine/refill") {
+
+    enqueueCommand("CMD:REFILL");
+  }
+
+  else if (t == "medicine/tare") {
+
+    enqueueCommand("CMD:TARE");
+  }
 }
 
 
@@ -152,6 +192,10 @@ void loop() {
     reconnectMQTT();
 
   client.loop();
+
+
+
+  processQueue();   // NEW: send queued commands slowly
 
 
 
