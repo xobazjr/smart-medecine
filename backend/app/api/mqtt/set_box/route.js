@@ -42,8 +42,9 @@ export async function POST(req) {
                 // Step A: Send the clear command to wipe the Arduino's EEPROM
                 client.publish('medicine/clear_alarm', 'clear');
 
-                // Wait 800ms to give the Arduino time to finish wiping safely
-                await new Promise(r => setTimeout(r, 800));
+                // INCREASED DELAY: Wait 2000ms (2 seconds) to give the Arduino
+                // more than enough time to finish wiping safely.
+                await new Promise(r => setTimeout(r, 2000));
 
                 // Step B: Set new alarms one by one with a delay
                 if (alarms && Array.isArray(alarms)) {
@@ -66,9 +67,9 @@ export async function POST(req) {
                         // Shoot the payload to the ESP8266
                         client.publish('medicine/set_alarm', payload);
 
-                        // CRITICAL: Pause for 500ms before looping to the next alarm.
-                        // This prevents the Arduino's Serial buffer from overflowing!
-                        await new Promise(r => setTimeout(r, 500));
+                        // INCREASED DELAY: Pause for 1500ms (1.5 seconds) before looping.
+                        // This absolutely guarantees the Serial buffer won't overflow!
+                        await new Promise(r => setTimeout(r, 1500));
                     }
                 }
 
