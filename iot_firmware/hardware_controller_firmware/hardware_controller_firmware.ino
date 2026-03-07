@@ -47,6 +47,9 @@ unsigned long lastWeightRead=0;
 
 float initWeight=0;
 float curWeight=0;
+float weightOffset=0;
+
+unsigned long weightDropStart=0;
 
 int activeIdx=-1;
 int lastDay=-1;
@@ -111,11 +114,13 @@ void sendTakenStatus(float diff,DateTime now){
 }
 
 void getNextAlarm(DateTime now,char* out){
+
   int cur=now.hour()*60+now.minute();
   int best=9999;
   int nh=-1,nm=-1;
 
   for(int i=0;i<alarmCount;i++){
+
     if(alarms[i].triggered) continue;
 
     int a=alarms[i].h*60+alarms[i].m;
@@ -139,14 +144,16 @@ void getNextAlarm(DateTime now,char* out){
 }
 
 void handleCmd(const char* c){
+
   if(strncmp(c,"CMD:ADD_MED:",12)==0){
+
     char name[NAME_LEN] = "Med";
     int h = 0, m = 0;
 
     sscanf(c+12,"{\"name\":\"%11[^\"]\",\"h\":%d,\"m\":%d}",name,&h,&m);
 
-    if(h > 23 || h < 0) h = 0;
-    if(m > 59 || m < 0) m = 0;
+    if(h>23||h<0) h=0;
+    if(m>59||m<0) m=0;
 
     if(alarmCount>=MAX_ALARMS) return;
 
@@ -157,35 +164,45 @@ void handleCmd(const char* c){
     alarms[alarmCount].triggered=false;
 
     alarmCount++;
+
     saveAlarms();
   }
+
   else if(strncmp(c,"CMD:CLEAR_MED",13)==0){
     alarmCount=0;
     saveAlarms();
   }
+
   else if(strncmp(c,"CMD:REFILL",10)==0){
     servo.write(SERVO_OPEN);
     delay(60000);
     servo.write(SERVO_CLOSE);
   }
+
   else if(strncmp(c,"CMD:TARE",8)==0){
-    if(scale.is_ready())
+    if(scale.is_ready()){
       scale.tare();
+      delay(500);
+      weightOffset=scale.get_units(10);
+    }
   }
+
   else if(strncmp(c,"CMD:WIFI:",9)==0)
     safeStrCopy(wifiStat,c+4,sizeof(wifiStat));
+
   else if(strncmp(c,"CMD:MQTT:",9)==0)
     safeStrCopy(mqttStat,c+4,sizeof(mqttStat));
 }
 
 void setup(){
+
   Serial.begin(115200);
+
   Wire.begin();
-  
-  // Prevent I2C bus from hanging if OLED or RTC gets disconnected
-  #if defined(__AVR__)
-    Wire.setWireTimeout(3000, true); 
-  #endif
+
+#if defined(__AVR__)
+  Wire.setWireTimeout(3000,true);
+#endif
 
   display.begin();
 
@@ -197,8 +214,11 @@ void setup(){
   scale.begin(PIN_DT,PIN_SCK);
   scale.set_scale(872);
 
-  if(scale.is_ready())
+  if(scale.is_ready()){
     scale.tare();
+    delay(500);
+    weightOffset=scale.get_units(10);
+  }
 
   rtc.begin();
 
@@ -211,10 +231,13 @@ void setup(){
 }
 
 void loop(){
+
   while(Serial.available()){
+
     char c=Serial.read();
 
-    if(c=='\n' || c=='\r'){
+    if(c=='\n'||c=='\r'){
+
       if(cmdPos>0){
         cmdBuf[cmdPos]='\0';
         handleCmd(cmdBuf);
@@ -222,6 +245,7 @@ void loop(){
       }
     }
     else{
+
       if(cmdPos<119)
         cmdBuf[cmdPos++]=c;
     }
@@ -230,13 +254,15 @@ void loop(){
   DateTime now=rtc.now();
 
   if(millis()-lastWeightRead>1000){
+
     if(scale.is_ready())
-      curWeight=scale.get_units(3);
+      curWeight=scale.get_units(5);
 
     lastWeightRead=millis();
   }
 
   if(lastDay!=now.day()){
+
     for(int i=0;i<alarmCount;i++)
       alarms[i].triggered=false;
 
@@ -244,58 +270,70 @@ void loop(){
   }
 
   for(int i=0;i<alarmCount;i++){
+
     if(!alarms[i].triggered &&
        now.hour()==alarms[i].h &&
        now.minute()==alarms[i].m &&
        !isDispensing){
 
-      // CRITICAL FIX: Only read weight if scale is connected to prevent freezing
-      initWeight = 0;
-      if(scale.is_ready()){
-        initWeight=scale.get_units(3); 
-      }
+      initWeight=curWeight;
 
       isDispensing=true;
       pillTaken=false;
+
+      weightDropStart=0;
 
       dispStart=millis();
       activeIdx=i;
 
       servo.write(SERVO_OPEN);
+
       alarms[i].triggered=true;
     }
   }
 
   if(isDispensing){
+
     unsigned long el=millis()-dispStart;
 
-    // CRITICAL FIX: Reliable beep timing (modulo can be skipped if loop is slow)
-    static unsigned long lastBeep = 0;
-    if(millis() - lastBeep >= 1000){
-      tone(PIN_BUZZER, 1200, 200);
-      lastBeep = millis();
+    static unsigned long lastBeep=0;
+
+    if(millis()-lastBeep>=1000){
+
+      tone(PIN_BUZZER,1200,200);
+      lastBeep=millis();
     }
 
     if(!pillTaken){
-      if(scale.is_ready()){
-        float nowW=scale.get_units(1);
 
-        if(nowW < initWeight){
-          float weightDropped = initWeight - nowW;
-          
-          if(weightDropped > 2){
-            pillTaken=true;
+      float weightDropped=initWeight-curWeight;
 
-            float diff=nowW-initWeight;
-            sendTakenStatus(diff,now);
-          }
+      if(weightDropped>3){
+
+        if(weightDropStart==0)
+          weightDropStart=millis();
+
+        if(millis()-weightDropStart>2000){
+
+          pillTaken=true;
+
+          float diff=curWeight-initWeight;
+
+          sendTakenStatus(diff,now);
         }
+
+      }else{
+
+        weightDropStart=0;
       }
     }
 
     if(el>180000){
+
       servo.write(SERVO_CLOSE);
+
       noTone(PIN_BUZZER);
+
       isDispensing=false;
     }
   }
@@ -303,6 +341,7 @@ void loop(){
   display.firstPage();
 
   do{
+
     display.setFont(u8g2_font_6x10_tr);
 
     display.setCursor(0,10);
@@ -316,12 +355,14 @@ void loop(){
     display.setCursor(0,32);
 
     if(isDispensing){
+
       if(pillTaken)
         display.print("Taken");
       else
         display.print("Take pill");
 
     }else{
+
       char next[10];
       getNextAlarm(now,next);
 
@@ -329,13 +370,20 @@ void loop(){
       display.print(next);
     }
 
+    display.setCursor(0,46);
+    display.print("W: ");
+    display.print((long)(curWeight-weightOffset));
+    display.print(" g");
+
     display.setCursor(0,60);
-    
+
     char t[10];
+
     sprintf(t,"%02d:%02d",now.hour(),now.minute());
+
     display.print(t);
 
-    display.setCursor(65, 60);
+    display.setCursor(65,60);
     display.print("Meds: ");
     display.print(alarmCount);
     display.print("/");
