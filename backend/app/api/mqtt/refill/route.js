@@ -31,21 +31,25 @@ export async function POST(req) {
                 clientId: `nextjs_refill_${Math.random().toString(16).slice(3)}`
             });
 
-            client.on('connect', () => {
+            // Added async here so we can use await for the delay
+            client.on('connect', async () => {
                 console.log("MQTT Connected for Refill!");
 
-                // Step A: Send the refill command to open the servo for 5 seconds
+                // Step A: Send the refill command to open the servo
                 client.publish('medicine/refill', 'open_box');
 
+                // Wait 2 seconds before sending the Tare command.
+                // This prevents the ESP8266 Serial buffer from overflowing.
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
                 // Step B: Send the tare command.
-                // The ESP8266 will process this exactly after the 5-second refill delay finishes!
+                // The Arduino will hold this in its buffer and execute it EXACTLY
+                // when its mechanical refill delay finishes!
                 client.publish('medicine/tare', 'reset_scale');
 
-                // Close connection after giving it a tiny moment to dispatch the messages
-                setTimeout(() => {
-                    client.end();
-                    resolve(true);
-                }, 500);
+                // Close connection safely
+                client.end();
+                resolve(true);
             });
 
             client.on('error', (err) => {
@@ -54,9 +58,6 @@ export async function POST(req) {
                 resolve(false);
             });
         });
-
-        // Optional: If you want to update your PostgreSQL database to reset the
-        // "each_taken" count or update stock, you can add that SQL query right here!
 
         return NextResponse.json(
             { message: "Refill command sent. The box will open for 1 minute." },

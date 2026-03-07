@@ -4,7 +4,7 @@ import mqtt from 'mqtt';
 
 export async function POST(req) {
     try {
-        // 1. Verify the token (keeps your API secure)
+        // 1. Verify the token to keep your API secure
         const authHeader = req.headers.get('authorization');
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return NextResponse.json(
@@ -23,11 +23,11 @@ export async function POST(req) {
             );
         }
 
-        // 2. Extract only what the hardware needs
+        // 2. Extract only the alarms array from the frontend payload
         const body = await req.json();
         const { alarms } = body;
 
-        // 3. Send Alarms directly to ESP8266 via MQTT
+        // 3. Send Alarms directly to the hardware with pacing
         await new Promise((resolve, reject) => {
             const client = mqtt.connect('mqtts://l2901b8a.ala.asia-southeast1.emqxsl.com:8883', {
                 username: 'mqtt_to_nextjs',
@@ -35,19 +35,24 @@ export async function POST(req) {
                 clientId: `nextjs_${Math.random().toString(16).slice(3)}`
             });
 
-            client.on('connect', () => {
+            // Note the "async" keyword added here to allow delays!
+            client.on('connect', async () => {
                 console.log("MQTT Connected! Bypassing DB and sending to hardware...");
 
-                // Step A: Clear existing alarms on the machine
+                // Step A: Send the clear command to wipe the Arduino's EEPROM
                 client.publish('medicine/clear_alarm', 'clear');
 
-                // Step B: Set new alarms
+                // Wait 800ms to give the Arduino time to finish wiping safely
+                await new Promise(r => setTimeout(r, 800));
+
+                // Step B: Set new alarms one by one with a delay
                 if (alarms && Array.isArray(alarms)) {
                     // Limit to 7 to match MAX_ALARMS on the ESP8266
                     const alarmsToSet = alarms.slice(0, 7);
 
-                    alarmsToSet.forEach(alarm => {
-                        if (!alarm.time) return;
+                    // Using a for...of loop so we can pause execution between sends
+                    for (const alarm of alarmsToSet) {
+                        if (!alarm.time) continue;
 
                         const [h, m] = alarm.time.split(':').map(Number);
                         const safeName = (alarm.name || "Meds").substring(0, 11);
@@ -58,15 +63,18 @@ export async function POST(req) {
                             m: m
                         });
 
+                        // Shoot the payload to the ESP8266
                         client.publish('medicine/set_alarm', payload);
-                    });
+
+                        // CRITICAL: Pause for 500ms before looping to the next alarm.
+                        // This prevents the Arduino's Serial buffer from overflowing!
+                        await new Promise(r => setTimeout(r, 500));
+                    }
                 }
 
-                // Add a small delay to ensure all payloads are sent
-                setTimeout(() => {
-                    client.end();
-                    resolve(true);
-                }, 500);
+                // All done! Close the connection safely and resolve the promise.
+                client.end();
+                resolve(true);
             });
 
             client.on('error', (err) => {
@@ -77,14 +85,14 @@ export async function POST(req) {
         });
 
         return NextResponse.json(
-            { message: "Success! Alarms sent directly to hardware." },
+            { message: "Success! Alarms synced perfectly to the medicine box." },
             { status: 200 }
         );
     }
     catch (e) {
         console.error(e);
         return NextResponse.json(
-            { error: e.message, status: 500 },
+            { error: e.message },
             { status: 500 }
         );
     }
