@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AddDrugPage extends StatefulWidget {
   final Map<String, dynamic> user;
+
   const AddDrugPage({super.key, required this.user});
 
   @override
@@ -12,86 +13,29 @@ class AddDrugPage extends StatefulWidget {
 }
 
 class _AddDrugPageState extends State<AddDrugPage> {
-  final _formKey = GlobalKey<FormState>();
-
-  TimeOfDay _timeOfDay = TimeOfDay.now();
-
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _totalController = TextEditingController();
   final TextEditingController _eachController = TextEditingController();
-  final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _timeController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
-  final TextEditingController _imageController = TextEditingController();
 
-  List<String> _patients = [];
   String? _selectedPatient;
+  String _timing = "after";
 
   bool _isLoading = false;
-  bool _isLoadingPatients = true;
 
-  @override
-  void initState() {
-    super.initState();
-    fetchPatients();
-  }
+  final List<String> _patients = ["ahgong", "ugay"];
 
-  Future<void> fetchPatients() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+  Set<String> _selectedTimes = {};
 
-    final response = await http.get(
-      Uri.parse(
-        'https://smart-medicine-topaz.vercel.app/api/patients/list?caretaker_name=${widget.user["username"]}',
-      ),
-      headers: {"Authorization": "Bearer $token"},
-    );
+  /// fixed alarm times
+  final Map<String, String> fixedTimes = {
+    "Morning": "08:00",
+    "Noon": "12:00",
+    "Evening": "18:00",
+    "Bedtime": "21:00",
+  };
 
-    if (!mounted) return;
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      setState(() {
-        _patients = data.map<String>((e) => e["username"].toString()).toList();
-        _isLoadingPatients = false;
-      });
-    } else {
-      setState(() {
-        _isLoadingPatients = false;
-      });
-    }
-  }
-
-  Future<void> selectDate() async {
-    DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _dateController.text = picked.toString().split(' ')[0];
-      });
-    }
-  }
-
-  Future<void> selectTime() async {
-    TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _timeOfDay,
-    );
-
-    if (picked != null) {
-      setState(() {
-        _timeOfDay = picked;
-        _timeController.text = picked.format(context);
-      });
-    }
-  }
-
+  /// เพิ่มยา
   Future<void> addDrug() async {
     if (_selectedPatient == null) {
       ScaffoldMessenger.of(
@@ -100,46 +44,66 @@ class _AddDrugPageState extends State<AddDrugPage> {
       return;
     }
 
+    if (_selectedPatient != "ahgong") {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("ยังไม่ติดตั้งอุปกรณ์"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedTimes.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("กรุณาเลือกช่วงเวลากินยา")));
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+
     final url = Uri.parse(
-      'https://smart-medicine-topaz.vercel.app/api/medicine/add',
+      "https://smart-medicine-topaz.vercel.app/api/medicine/add",
     );
 
     final response = await http.post(
       url,
       headers: {
-        "Authorization": "Bearer ${widget.user["token"]}",
+        "Authorization": "Bearer $token",
         "Content-Type": "application/json",
       },
       body: jsonEncode({
         "drug_name": _nameController.text,
-        "start_date": _dateController.text,
-        "start_time": _timeController.text,
+        "start_date": DateTime.now().toIso8601String(),
+        "start_time": "08:00",
         "total_drugs": int.tryParse(_totalController.text) ?? 0,
         "each_taken": int.tryParse(_eachController.text) ?? 0,
         "description": _descController.text,
         "warning": _descController.text,
-        "image_url": _imageController.text,
-        "take_morning": 1,
-        "take_noon": 0,
-        "take_evening": 0,
-        "take_bedtime": 0,
-        "timing": "after",
+        "image_url": "",
+        "timing": _timing,
         "frequency": "daily",
         "username": _selectedPatient,
+        "take_morning": _selectedTimes.contains("Morning"),
+        "take_noon": _selectedTimes.contains("Noon"),
+        "take_evening": _selectedTimes.contains("Evening"),
+        "take_bedtime": _selectedTimes.contains("Bedtime"),
       }),
     );
 
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = false;
-    });
+    print("STATUS = ${response.statusCode}");
+    print("BODY = ${response.body}");
 
     if (response.statusCode == 201) {
+      await sendMqtt();
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("เพิ่มยาสำเร็จ"),
@@ -156,191 +120,240 @@ class _AddDrugPageState extends State<AddDrugPage> {
         ),
       );
     }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _totalController.dispose();
-    _eachController.dispose();
-    _dateController.dispose();
-    _timeController.dispose();
-    _descController.dispose();
-    _imageController.dispose();
-    super.dispose();
+  /// ดึงยา + ส่ง MQTT
+  Future<void> sendMqtt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+
+    final listRes = await http.get(
+      Uri.parse(
+        "https://smart-medicine-topaz.vercel.app/api/medicine/list?caretaker_name=${widget.user["username"]}",
+      ),
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (listRes.statusCode != 200) return;
+
+    final data = jsonDecode(listRes.body);
+
+    List alarms = [];
+
+    for (var user in data) {
+      if (user["username"] == "ahgong") {
+        for (var drug in user["drugs"]) {
+          if (drug["total_drugs"] != 0) {
+            if (drug["take_morning"] == true) {
+              alarms.add({"name": drug["drug_name"], "time": "08:00"});
+            }
+
+            if (drug["take_noon"] == true) {
+              alarms.add({"name": drug["drug_name"], "time": "12:00"});
+            }
+
+            if (drug["take_evening"] == true) {
+              alarms.add({"name": drug["drug_name"], "time": "18:00"});
+            }
+
+            if (drug["take_bedtime"] == true) {
+              alarms.add({"name": drug["drug_name"], "time": "21:00"});
+            }
+          }
+        }
+      }
+    }
+
+    final mqttRes = await http.post(
+      Uri.parse("https://smart-medicine-topaz.vercel.app/api/mqtt/set_box"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({"username": "ahgong", "alarms": alarms}),
+    );
+
+    print("MQTT STATUS ${mqttRes.statusCode}");
+    print(mqttRes.body);
+  }
+
+  Widget buildTimeButton(String label, String value) {
+    final selected = _selectedTimes.contains(value);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            if (selected) {
+              _selectedTimes.remove(value);
+            } else {
+              _selectedTimes.add(value);
+            }
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? Colors.deepPurple : Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(color: selected ? Colors.white : Colors.black),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('เพิ่มยา')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
+      appBar: AppBar(title: const Text("เพิ่มยา")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            DropdownButtonFormField<String>(
+              value: _selectedPatient,
+              items: _patients.map((p) {
+                return DropdownMenuItem(value: p, child: Text(p));
+              }).toList(),
+              onChanged: (v) {
+                setState(() {
+                  _selectedPatient = v;
+                });
+              },
+              decoration: const InputDecoration(
+                labelText: "เลือกผู้ป่วย",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: "ชื่อยา",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            TextField(
+              controller: _totalController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: "จำนวนยา",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            TextField(
+              controller: _eachController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: "กินครั้งละ",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text("ก่อน / หลังอาหาร"),
+            ),
+
+            const SizedBox(height: 10),
+
+            Row(
               children: [
-                _isLoadingPatients
-                    ? const CircularProgressIndicator()
-                    : DropdownButtonFormField<String>(
-                        value: _selectedPatient,
-                        items: _patients
-                            .map(
-                              (username) => DropdownMenuItem(
-                                value: username,
-                                child: Text(username),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedPatient = value;
-                          });
-                        },
-                        decoration: const InputDecoration(
-                          labelText: 'เลือกผู้ป่วย',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null) {
-                            return 'กรุณาเลือกผู้ป่วย';
-                          }
-                          return null;
-                        },
-                      ),
-                const SizedBox(height: 15),
-
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'ชื่อยา',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'กรุณากรอกชื่อยา';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 15),
-
-                TextFormField(
-                  controller: _totalController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'จำนวนยาทั้งหมด',
-                    border: OutlineInputBorder(),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _timing == "before"
+                          ? Colors.deepPurple
+                          : Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _timing = "before";
+                      });
+                    },
+                    child: const Text("ก่อนอาหาร"),
                   ),
                 ),
-                const SizedBox(height: 15),
-
-                TextFormField(
-                  controller: _eachController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'จำนวนยาที่ต้องกิน',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    final total = int.tryParse(_totalController.text) ?? 0;
-                    final each = int.tryParse(value ?? '') ?? 0;
-
-                    if (each > total) {
-                      return 'จำนวนที่กินต้องไม่เกินจำนวนทั้งหมด';
-                    }
-
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 15),
-
-                TextFormField(
-                  controller: _dateController,
-                  readOnly: true,
-                  onTap: selectDate,
-                  decoration: const InputDecoration(
-                    labelText: 'เลือกวันที่',
-                    prefixIcon: Icon(Icons.calendar_today),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'กรุณาเลือกวันที่';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 15),
-
-                TextFormField(
-                  controller: _timeController,
-                  readOnly: true,
-                  onTap: selectTime,
-                  decoration: const InputDecoration(
-                    labelText: 'เลือกเวลา',
-                    prefixIcon: Icon(Icons.access_time),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'กรุณาเลือกเวลา'
-                      : null,
-                ),
-                const SizedBox(height: 15),
-
-                TextFormField(
-                  controller: _descController,
-                  minLines: 4,
-                  maxLines: 8,
-                  keyboardType: TextInputType.multiline,
-                  decoration: const InputDecoration(
-                    hintText: 'รายละเอียดยา',
-                    border: OutlineInputBorder(),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _timing == "after"
+                          ? Colors.deepPurple
+                          : Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _timing = "after";
+                      });
+                    },
+                    child: const Text("หลังอาหาร"),
                   ),
                 ),
-                const SizedBox(height: 15),
-
-                TextFormField(
-                  controller: _imageController,
-                  keyboardType: TextInputType.url,
-                  decoration: const InputDecoration(
-                    labelText: 'ลิงก์รูปภาพ',
-                    prefixIcon: Icon(Icons.image),
-                    border: OutlineInputBorder(),
-                  ),
-                  // validator: (value) {
-                  //   if (value == null || value.trim().isEmpty) {
-                  //     return 'กรุณากรอกลิงก์รูปภาพ';
-                  //   }
-
-                  //   final uri = Uri.tryParse(value.trim());
-
-                  //   if (uri == null ||
-                  //       !uri.hasAbsolutePath ||
-                  //       !(uri.scheme == 'http' || uri.scheme == 'https')) {
-                  //     return 'กรุณากรอก URL ให้ถูกต้อง (ต้องขึ้นต้นด้วย http หรือ https)';
-                  //   }
-
-                  //   return null;
-                  // },
-                ),
-                const SizedBox(height: 20),
-
-                _isLoading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                        onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
-                            await addDrug();
-                          }
-                        },
-                        child: const Text('บันทึก'),
-                      ),
               ],
             ),
-          ),
+
+            const SizedBox(height: 20),
+
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text("ช่วงเวลากินยา"),
+            ),
+
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                buildTimeButton("เช้า", "Morning"),
+                const SizedBox(width: 8),
+                buildTimeButton("กลางวัน", "Noon"),
+                const SizedBox(width: 8),
+                buildTimeButton("เย็น", "Evening"),
+                const SizedBox(width: 8),
+                buildTimeButton("ก่อนนอน", "Bedtime"),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            TextField(
+              controller: _descController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: "รายละเอียดยา",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: addDrug,
+                    child: const Text("บันทึก"),
+                  ),
+          ],
         ),
       ),
     );
