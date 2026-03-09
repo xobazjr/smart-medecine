@@ -34,7 +34,6 @@ class _LandingPagePatientState extends State<LandingPagePatient> {
       body: Center(child: _widgetOptions.elementAt(_selectedIndex)),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        // backgroundColor: const Color(0xFF095086),
         indicatorColor: const Color(0xFF9BD2F2),
         onDestinationSelected: _onItemTapped,
         destinations: const [

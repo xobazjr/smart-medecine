@@ -210,13 +210,12 @@ void loop() {
 
   if (pendingTaken) {
 
-    if (millis() - takenTimer > 60000) {
 
       client.publish("medicine_box/taken",
                      pendingPayload.c_str());
 
       pendingTaken = false;
-    }
+    
   }
 
 
