@@ -27,7 +27,7 @@ export async function POST(req) {
         // =========================
         // CHECK BOARD STATUS FIRST
         // =========================
-        const statusRes = await fetch(`${process.env.BASE_URL || 'http://localhost:3000'}/api/get_status`);
+        const statusRes = await fetch(`${process.env.BASE_URL || 'https://smart-medicine-topaz.vercel.app'}/api/get_status`);
         const status = await statusRes.json();
 
         if (!status.is_online) {
